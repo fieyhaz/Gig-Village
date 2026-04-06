@@ -73,13 +73,13 @@ export default function Marketplace() {
             </Button>
             {categories?.map((cat) => (
               <Button 
-                key={cat}
-                variant={category === cat ? "default" : "outline"} 
-                onClick={() => setCategory(cat)}
+                key={cat.category}
+                variant={category === cat.category ? "default" : "outline"} 
+                onClick={() => setCategory(cat.category)}
                 className="whitespace-nowrap"
-                data-testid={`btn-filter-${cat}`}
+                data-testid={`btn-filter-${cat.category}`}
               >
-                {cat}
+                {cat.category}
               </Button>
             ))}
           </div>
