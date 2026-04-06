@@ -15,6 +15,47 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+- **Frontend**: React + Vite + Tailwind CSS + shadcn/ui
+
+## Artifacts
+
+### GigVillage Platform (`artifacts/gigvillage`)
+A community-based gig economy web app for rural youth and graduate entrepreneurs in Malaysia.
+
+**Pages:**
+- `/` — Landing page with hero, features, how it works
+- `/marketplace` — Browse gig listings with category/location/search filters
+- `/providers` — Directory of registered service providers
+- `/bookings` — Booking management with status tabs
+- `/impact` — Impact dashboard with stats, charts, activity feed
+- `/register` — Register as a service provider
+- `/post-gig` — Post a new gig listing
+- `/gigs/:id` — Gig detail page with booking form
+- `/providers/:id` — Provider profile page
+- `/bookings/:id` — Booking detail page
+
+**Brand:** Deep crimson red (#8B1A1A) primary, warm gold (#C9A84C) accent, cream background — Malaysian heritage palette.
+
+### API Server (`artifacts/api-server`)
+Express 5 backend serving the GigVillage API at `/api`.
+
+**Routes:**
+- `GET/POST /api/gigs` — List and create gig listings
+- `GET /api/gigs/:id` — Get single gig
+- `GET/POST /api/providers` — List and register providers
+- `GET /api/providers/:id` — Get provider profile
+- `GET/POST /api/bookings` — List and create bookings
+- `GET /api/bookings/:id` — Get booking details
+- `PATCH /api/bookings/:id` — Update booking status
+- `GET /api/impact/summary` — Platform impact stats
+- `GET /api/impact/activity` — Recent activity feed
+- `GET /api/impact/categories` — Gig category breakdown
+
+## Database Tables
+
+- `providers` — Service provider profiles (skills, location, ratings, earnings)
+- `gigs` — Gig/service listings (category, price, status)
+- `bookings` — Service bookings (status, customer info, scheduling)
 
 ## Key Commands
 

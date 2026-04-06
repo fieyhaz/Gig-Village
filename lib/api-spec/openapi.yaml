@@ -3,20 +3,27 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: GigVillage Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: gigs
+    description: Gig/service listings
+  - name: providers
+    description: Service providers (youth entrepreneurs)
+  - name: bookings
+    description: Service bookings
+  - name: impact
+    description: Impact & analytics data
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +31,248 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /gigs:
+    get:
+      operationId: listGigs
+      tags: [gigs]
+      summary: List all gig listings
+      parameters:
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: location
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of gigs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Gig"
+    post:
+      operationId: createGig
+      tags: [gigs]
+      summary: Create a new gig listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGigBody"
+      responses:
+        "201":
+          description: Gig created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Gig"
+
+  /gigs/{id}:
+    get:
+      operationId: getGig
+      tags: [gigs]
+      summary: Get a single gig
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Gig details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Gig"
+
+  /providers:
+    get:
+      operationId: listProviders
+      tags: [providers]
+      summary: List service providers
+      parameters:
+        - in: query
+          name: skill
+          schema:
+            type: string
+        - in: query
+          name: location
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Provider"
+    post:
+      operationId: createProvider
+      tags: [providers]
+      summary: Register as a service provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProviderBody"
+      responses:
+        "201":
+          description: Provider registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Provider"
+
+  /providers/{id}:
+    get:
+      operationId: getProvider
+      tags: [providers]
+      summary: Get provider profile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Provider profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Provider"
+
+  /bookings:
+    get:
+      operationId: listBookings
+      tags: [bookings]
+      summary: List bookings
+      responses:
+        "200":
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+    post:
+      operationId: createBooking
+      tags: [bookings]
+      summary: Create a booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingBody"
+      responses:
+        "201":
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{id}:
+    get:
+      operationId: getBooking
+      tags: [bookings]
+      summary: Get booking details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Booking details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+    patch:
+      operationId: updateBookingStatus
+      tags: [bookings]
+      summary: Update booking status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBookingStatusBody"
+      responses:
+        "200":
+          description: Booking updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /impact/summary:
+    get:
+      operationId: getImpactSummary
+      tags: [impact]
+      summary: Get platform impact summary
+      responses:
+        "200":
+          description: Impact summary data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImpactSummary"
+
+  /impact/activity:
+    get:
+      operationId: getRecentActivity
+      tags: [impact]
+      summary: Get recent platform activity
+      responses:
+        "200":
+          description: Recent activity feed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  /impact/categories:
+    get:
+      operationId: getGigCategories
+      tags: [impact]
+      summary: Get gig count by category
+      responses:
+        "200":
+          description: Category breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryCount"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +283,261 @@ components:
       required:
         - status
 
+    Gig:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        price:
+          type: number
+        location:
+          type: string
+        providerId:
+          type: integer
+        providerName:
+          type: string
+        providerAvatar:
+          type: string
+        rating:
+          type: number
+        reviewCount:
+          type: integer
+        imageUrl:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive]
+        createdAt:
+          type: string
+      required:
+        - id
+        - title
+        - description
+        - category
+        - price
+        - location
+        - providerId
+        - providerName
+        - status
+        - createdAt
+
+    CreateGigBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        price:
+          type: number
+        location:
+          type: string
+        providerId:
+          type: integer
+      required:
+        - title
+        - description
+        - category
+        - price
+        - location
+        - providerId
+
+    Provider:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        bio:
+          type: string
+        location:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        avatar:
+          type: string
+        rating:
+          type: number
+        reviewCount:
+          type: integer
+        totalEarnings:
+          type: number
+        completedGigs:
+          type: integer
+        joinedAt:
+          type: string
+        isVerified:
+          type: boolean
+      required:
+        - id
+        - name
+        - bio
+        - location
+        - skills
+        - joinedAt
+        - isVerified
+
+    CreateProviderBody:
+      type: object
+      properties:
+        name:
+          type: string
+        bio:
+          type: string
+        location:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+      required:
+        - name
+        - bio
+        - location
+        - skills
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: integer
+        gigId:
+          type: integer
+        gigTitle:
+          type: string
+        providerId:
+          type: integer
+        providerName:
+          type: string
+        customerName:
+          type: string
+        customerContact:
+          type: string
+        scheduledDate:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, completed, cancelled]
+        totalAmount:
+          type: number
+        notes:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - gigId
+        - gigTitle
+        - providerId
+        - providerName
+        - customerName
+        - customerContact
+        - scheduledDate
+        - status
+        - totalAmount
+        - createdAt
+
+    CreateBookingBody:
+      type: object
+      properties:
+        gigId:
+          type: integer
+        customerName:
+          type: string
+        customerContact:
+          type: string
+        scheduledDate:
+          type: string
+        notes:
+          type: string
+      required:
+        - gigId
+        - customerName
+        - customerContact
+        - scheduledDate
+
+    UpdateBookingStatusBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, confirmed, completed, cancelled]
+      required:
+        - status
+
+    ImpactSummary:
+      type: object
+      properties:
+        totalProviders:
+          type: integer
+        totalGigs:
+          type: integer
+        totalBookings:
+          type: integer
+        totalEarnings:
+          type: number
+        activeLocations:
+          type: integer
+        womenParticipation:
+          type: number
+        youthEmpowered:
+          type: integer
+        avgRating:
+          type: number
+      required:
+        - totalProviders
+        - totalGigs
+        - totalBookings
+        - totalEarnings
+        - activeLocations
+        - womenParticipation
+        - youthEmpowered
+        - avgRating
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [booking, registration, completion, payment]
+        message:
+          type: string
+        location:
+          type: string
+        timestamp:
+          type: string
+        amount:
+          type: number
+      required:
+        - id
+        - type
+        - message
+        - location
+        - timestamp
+
+    CategoryCount:
+      type: object
+      properties:
+        category:
+          type: string
+        count:
+          type: integer
+        totalEarnings:
+          type: number
+      required:
+        - category
+        - count
+        - totalEarnings
