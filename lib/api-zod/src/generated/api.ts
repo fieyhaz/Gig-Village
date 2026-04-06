@@ -134,6 +134,66 @@ export const GetProviderResponse = zod.object({
 });
 
 /**
+ * @summary Get gigs listed by a provider
+ */
+export const GetProviderGigsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetProviderGigsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  category: zod.string(),
+  price: zod.number(),
+  location: zod.string(),
+  providerId: zod.number(),
+  providerName: zod.string(),
+  providerAvatar: zod.string().optional(),
+  rating: zod.number().optional(),
+  reviewCount: zod.number().optional(),
+  imageUrl: zod.string().optional(),
+  status: zod.enum(["active", "inactive"]),
+  createdAt: zod.string(),
+});
+export const GetProviderGigsResponse = zod.array(GetProviderGigsResponseItem);
+
+/**
+ * @summary Get reviews for a provider
+ */
+export const GetProviderReviewsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetProviderReviewsResponseItem = zod.object({
+  id: zod.number(),
+  providerId: zod.number(),
+  gigId: zod.number(),
+  gigTitle: zod.string(),
+  reviewerName: zod.string(),
+  rating: zod.number(),
+  comment: zod.string(),
+  createdAt: zod.string(),
+});
+export const GetProviderReviewsResponse = zod.array(
+  GetProviderReviewsResponseItem,
+);
+
+/**
+ * @summary Submit a review for a provider
+ */
+export const CreateProviderReviewParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateProviderReviewBody = zod.object({
+  gigId: zod.number(),
+  reviewerName: zod.string(),
+  rating: zod.number(),
+  comment: zod.string(),
+});
+
+/**
  * @summary List bookings
  */
 export const ListBookingsResponseItem = zod.object({

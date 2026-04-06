@@ -146,6 +146,36 @@ export interface CategoryCount {
   totalEarnings: number;
 }
 
+export interface Review {
+  id: number;
+  providerId: number;
+  gigId: number;
+  gigTitle: string;
+  reviewerName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface CreateReviewBody {
+  gigId: number;
+  reviewerName: string;
+  rating: number;
+  comment: string;
+}
+
+export interface GetProviderGigsParams {
+  id: number;
+}
+
+export interface GetProviderReviewsParams {
+  id: number;
+}
+
+export interface CreateProviderReviewParams {
+  id: number;
+}
+
 export type ListGigsParams = {
   category?: string;
   location?: string;

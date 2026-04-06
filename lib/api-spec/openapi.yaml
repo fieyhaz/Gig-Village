@@ -156,6 +156,71 @@ paths:
               schema:
                 $ref: "#/components/schemas/Provider"
 
+  /providers/{id}/gigs:
+    get:
+      operationId: getProviderGigs
+      tags: [providers]
+      summary: Get gigs listed by a provider
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Provider gigs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Gig"
+
+  /providers/{id}/reviews:
+    get:
+      operationId: getProviderReviews
+      tags: [providers]
+      summary: Get reviews for a provider
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+    post:
+      operationId: createProviderReview
+      tags: [providers]
+      summary: Submit a review for a provider
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReviewBody"
+      responses:
+        "201":
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+
   /bookings:
     get:
       operationId: listBookings
@@ -541,3 +606,73 @@ components:
         - category
         - count
         - totalEarnings
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        providerId:
+          type: integer
+        gigId:
+          type: integer
+        gigTitle:
+          type: string
+        reviewerName:
+          type: string
+        rating:
+          type: integer
+        comment:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - providerId
+        - gigId
+        - gigTitle
+        - reviewerName
+        - rating
+        - comment
+        - createdAt
+
+    CreateReviewBody:
+      type: object
+      properties:
+        gigId:
+          type: integer
+        reviewerName:
+          type: string
+        rating:
+          type: integer
+        comment:
+          type: string
+      required:
+        - gigId
+        - reviewerName
+        - rating
+        - comment
+
+    GetProviderGigsParams:
+      type: object
+      properties:
+        id:
+          type: integer
+      required:
+        - id
+
+    GetProviderReviewsParams:
+      type: object
+      properties:
+        id:
+          type: integer
+      required:
+        - id
+
+    CreateProviderReviewParams:
+      type: object
+      properties:
+        id:
+          type: integer
+      required:
+        - id

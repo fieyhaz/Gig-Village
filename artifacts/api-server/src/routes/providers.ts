@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { db, providersTable } from "@workspace/db";
+import { db, providersTable, gigsTable, reviewsTable } from "@workspace/db";
 import { eq, ilike, and, sql } from "drizzle-orm";
-import { ListProvidersQueryParams, CreateProviderBody, GetProviderParams } from "@workspace/api-zod";
+import { ListProvidersQueryParams, CreateProviderBody, GetProviderParams, CreateProviderReviewBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -63,6 +63,68 @@ router.get("/:id", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to get provider");
     res.status(500).json({ error: "Failed to get provider" });
+  }
+});
+
+router.get("/:id/gigs", async (req, res) => {
+  try {
+    const parsed = GetProviderParams.safeParse({ id: Number(req.params.id) });
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid provider ID" });
+      return;
+    }
+    const gigs = await db.select().from(gigsTable).where(eq(gigsTable.providerId, parsed.data.id));
+    res.json(gigs);
+  } catch (err) {
+    req.log.error({ err }, "Failed to get provider gigs");
+    res.status(500).json({ error: "Failed to get provider gigs" });
+  }
+});
+
+router.get("/:id/reviews", async (req, res) => {
+  try {
+    const parsed = GetProviderParams.safeParse({ id: Number(req.params.id) });
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid provider ID" });
+      return;
+    }
+    const reviews = await db
+      .select()
+      .from(reviewsTable)
+      .where(eq(reviewsTable.providerId, parsed.data.id))
+      .orderBy(sql`${reviewsTable.createdAt} DESC`);
+    res.json(reviews);
+  } catch (err) {
+    req.log.error({ err }, "Failed to get provider reviews");
+    res.status(500).json({ error: "Failed to get provider reviews" });
+  }
+});
+
+router.post("/:id/reviews", async (req, res) => {
+  try {
+    const idParsed = GetProviderParams.safeParse({ id: Number(req.params.id) });
+    const bodyParsed = CreateProviderReviewBody.safeParse(req.body);
+
+    if (!idParsed.success || !bodyParsed.success) {
+      res.status(400).json({ error: "Invalid request" });
+      return;
+    }
+
+    const [gig] = await db.select().from(gigsTable).where(eq(gigsTable.id, bodyParsed.data.gigId));
+
+    const [review] = await db.insert(reviewsTable).values({
+      providerId: idParsed.data.id,
+      gigId: bodyParsed.data.gigId,
+      gigTitle: gig?.title ?? "Unknown Service",
+      reviewerName: bodyParsed.data.reviewerName,
+      rating: bodyParsed.data.rating,
+      comment: bodyParsed.data.comment,
+    }).returning();
+
+    res.status(201).json(review);
+  } catch (err) {
+    req.log.error({ err }, "Failed to create review");
+    res.status(500).json({ error: "Failed to create review" });
   }
 });
 

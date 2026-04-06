@@ -26,12 +26,12 @@ A community-based gig economy web app for rural youth and graduate entrepreneurs
 - `/` — Landing page with hero, features, how it works
 - `/marketplace` — Browse gig listings with category/location/search filters
 - `/providers` — Directory of registered service providers
+- `/providers/:id` — Full provider profile with bio, stats, services, reviews, review form, rating breakdown
 - `/bookings` — Booking management with status tabs
 - `/impact` — Impact dashboard with stats, charts, activity feed
 - `/register` — Register as a service provider
 - `/post-gig` — Post a new gig listing
 - `/gigs/:id` — Gig detail page with booking form
-- `/providers/:id` — Provider profile page
 - `/bookings/:id` — Booking detail page
 
 **Brand:** Deep crimson red (#8B1A1A) primary, warm gold (#C9A84C) accent, cream background — Malaysian heritage palette.
