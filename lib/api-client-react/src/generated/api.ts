@@ -32,6 +32,8 @@ import type {
   Provider,
   Review,
   UpdateBookingStatusBody,
+  UpdateGigBody,
+  UpdateProviderBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -374,6 +376,93 @@ export function useGetGig<
 }
 
 /**
+ * @summary Update a gig listing
+ */
+export const getUpdateGigUrl = (id: number) => {
+  return `/api/gigs/${id}`;
+};
+
+export const updateGig = async (
+  id: number,
+  updateGigBody: UpdateGigBody,
+  options?: RequestInit,
+): Promise<Gig> => {
+  return customFetch<Gig>(getUpdateGigUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateGigBody),
+  });
+};
+
+export const getUpdateGigMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateGig>>,
+    TError,
+    { id: number; data: BodyType<UpdateGigBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateGig>>,
+  TError,
+  { id: number; data: BodyType<UpdateGigBody> },
+  TContext
+> => {
+  const mutationKey = ["updateGig"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateGig>>,
+    { id: number; data: BodyType<UpdateGigBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateGig(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateGigMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateGig>>
+>;
+export type UpdateGigMutationBody = BodyType<UpdateGigBody>;
+export type UpdateGigMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a gig listing
+ */
+export const useUpdateGig = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateGig>>,
+    TError,
+    { id: number; data: BodyType<UpdateGigBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateGig>>,
+  TError,
+  { id: number; data: BodyType<UpdateGigBody> },
+  TContext
+> => {
+  return useMutation(getUpdateGigMutationOptions(options));
+};
+
+/**
  * @summary List service providers
  */
 export const getListProvidersUrl = (params?: ListProvidersParams) => {
@@ -639,6 +728,93 @@ export function useGetProvider<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Update provider profile
+ */
+export const getUpdateProviderUrl = (id: number) => {
+  return `/api/providers/${id}`;
+};
+
+export const updateProvider = async (
+  id: number,
+  updateProviderBody: UpdateProviderBody,
+  options?: RequestInit,
+): Promise<Provider> => {
+  return customFetch<Provider>(getUpdateProviderUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateProviderBody),
+  });
+};
+
+export const getUpdateProviderMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProvider>>,
+    TError,
+    { id: number; data: BodyType<UpdateProviderBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateProvider>>,
+  TError,
+  { id: number; data: BodyType<UpdateProviderBody> },
+  TContext
+> => {
+  const mutationKey = ["updateProvider"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateProvider>>,
+    { id: number; data: BodyType<UpdateProviderBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateProvider(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateProviderMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateProvider>>
+>;
+export type UpdateProviderMutationBody = BodyType<UpdateProviderBody>;
+export type UpdateProviderMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update provider profile
+ */
+export const useUpdateProvider = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProvider>>,
+    TError,
+    { id: number; data: BodyType<UpdateProviderBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateProvider>>,
+  TError,
+  { id: number; data: BodyType<UpdateProviderBody> },
+  TContext
+> => {
+  return useMutation(getUpdateProviderMutationOptions(options));
+};
 
 /**
  * @summary Get gigs listed by a provider

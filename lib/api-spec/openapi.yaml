@@ -95,6 +95,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Gig"
+    patch:
+      operationId: updateGig
+      tags: [gigs]
+      summary: Update a gig listing
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGigBody"
+      responses:
+        "200":
+          description: Updated gig
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Gig"
 
   /providers:
     get:
@@ -151,6 +174,29 @@ paths:
       responses:
         "200":
           description: Provider profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Provider"
+    patch:
+      operationId: updateProvider
+      tags: [providers]
+      summary: Update provider profile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProviderBody"
+      responses:
+        "200":
+          description: Updated provider
           content:
             application/json:
               schema:
@@ -676,3 +722,40 @@ components:
           type: integer
       required:
         - id
+
+    UpdateProviderBody:
+      type: object
+      properties:
+        name:
+          type: string
+        bio:
+          type: string
+        location:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        avatar:
+          type: string
+          description: Base64 data URL for profile photo
+
+    UpdateGigBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        price:
+          type: number
+        location:
+          type: string
+        status:
+          type: string
+          enum: [active, paused, completed]
+        imageUrl:
+          type: string
+          description: Base64 data URL for service photo

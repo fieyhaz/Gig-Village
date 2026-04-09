@@ -78,6 +78,43 @@ export const GetGigResponse = zod.object({
 });
 
 /**
+ * @summary Update a gig listing
+ */
+export const UpdateGigParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateGigBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().optional(),
+  category: zod.string().optional(),
+  price: zod.number().optional(),
+  location: zod.string().optional(),
+  status: zod.enum(["active", "paused", "completed"]).optional(),
+  imageUrl: zod
+    .string()
+    .optional()
+    .describe("Base64 data URL for service photo"),
+});
+
+export const UpdateGigResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  category: zod.string(),
+  price: zod.number(),
+  location: zod.string(),
+  providerId: zod.number(),
+  providerName: zod.string(),
+  providerAvatar: zod.string().optional(),
+  rating: zod.number().optional(),
+  reviewCount: zod.number().optional(),
+  imageUrl: zod.string().optional(),
+  status: zod.enum(["active", "inactive"]),
+  createdAt: zod.string(),
+});
+
+/**
  * @summary List service providers
  */
 export const ListProvidersQueryParams = zod.object({
@@ -119,6 +156,36 @@ export const GetProviderParams = zod.object({
 });
 
 export const GetProviderResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  bio: zod.string(),
+  location: zod.string(),
+  skills: zod.array(zod.string()),
+  avatar: zod.string().optional(),
+  rating: zod.number().optional(),
+  reviewCount: zod.number().optional(),
+  totalEarnings: zod.number().optional(),
+  completedGigs: zod.number().optional(),
+  joinedAt: zod.string(),
+  isVerified: zod.boolean(),
+});
+
+/**
+ * @summary Update provider profile
+ */
+export const UpdateProviderParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateProviderBody = zod.object({
+  name: zod.string().optional(),
+  bio: zod.string().optional(),
+  location: zod.string().optional(),
+  skills: zod.array(zod.string()).optional(),
+  avatar: zod.string().optional().describe("Base64 data URL for profile photo"),
+});
+
+export const UpdateProviderResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   bio: zod.string(),

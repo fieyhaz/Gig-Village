@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import {
   useGetProvider, getGetProviderQueryKey,
   useGetProviderGigs, getGetProviderGigsQueryKey,
   useGetProviderReviews, getGetProviderReviewsQueryKey,
   useCreateProviderReview,
+  useUpdateProvider,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -14,7 +15,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import {
   MapPin, Star, ShieldCheck, Briefcase, Calendar,
-  ArrowLeft, ArrowRight, MessageSquare, Send, ChevronRight
+  ArrowLeft, ArrowRight, MessageSquare, Send, ChevronRight,
+  Pencil, Camera, X, Check, ImagePlus,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -74,6 +76,63 @@ function RatingBar({ label, count, total }: { label: string; count: number; tota
   );
 }
 
+function PhotoUploader({
+  current,
+  label,
+  onChange,
+  round,
+}: {
+  current: string | null | undefined;
+  label: string;
+  onChange: (dataUrl: string) => void;
+  round?: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image must be under 2 MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      setPreview(result);
+      onChange(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const src = preview || current;
+  const containerClass = round
+    ? "w-24 h-24 rounded-full overflow-hidden border-4 border-border"
+    : "w-full h-40 rounded-xl overflow-hidden border-2 border-border";
+
+  return (
+    <div>
+      <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">{label}</p>
+      <div
+        className={`relative cursor-pointer group ${containerClass} bg-muted flex items-center justify-center`}
+        onClick={() => inputRef.current?.click()}
+      >
+        {src ? (
+          <img src={src} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <ImagePlus className="w-8 h-8 text-muted-foreground/50" />
+        )}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+          <Camera className="w-6 h-6 text-white" />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground mt-1">Click to upload · Max 2 MB</p>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+    </div>
+  );
+}
+
 export default function ProviderDetail() {
   const params = useParams();
   const id = parseInt(params.id || "0");
@@ -81,6 +140,7 @@ export default function ProviderDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const { data: provider, isLoading } = useGetProvider(id, {
     query: { enabled: !!id, queryKey: getGetProviderQueryKey(id) }
@@ -93,8 +153,53 @@ export default function ProviderDetail() {
   });
 
   const createReview = useCreateProviderReview();
+  const updateProvider = useUpdateProvider();
 
-  const form = useForm<ReviewFormValues>({
+  // Edit profile state
+  const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editSkills, setEditSkills] = useState("");
+  const [editAvatar, setEditAvatar] = useState<string | null>(null);
+
+  const startEditing = () => {
+    if (!provider) return;
+    setEditName(provider.name);
+    setEditBio(provider.bio);
+    setEditLocation(provider.location);
+    setEditSkills(provider.skills.join(", "));
+    setEditAvatar(null);
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = () => {
+    updateProvider.mutate(
+      {
+        id,
+        data: {
+          name: editName.trim(),
+          bio: editBio.trim(),
+          location: editLocation.trim(),
+          skills: editSkills.split(",").map((s) => s.trim()).filter(Boolean),
+          ...(editAvatar ? { avatar: editAvatar } : {}),
+        },
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetProviderQueryKey(id) });
+          queryClient.invalidateQueries({ queryKey: getGetProviderGigsQueryKey(id) });
+          toast({ title: "Profile updated!", description: "Your changes have been saved." });
+          setIsEditing(false);
+          setEditAvatar(null);
+        },
+        onError: () => {
+          toast({ title: "Error", description: "Failed to save changes.", variant: "destructive" });
+        },
+      }
+    );
+  };
+
+  const reviewForm = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewFormSchema),
     defaultValues: { gigId: "", reviewerName: "", rating: "", comment: "" },
   });
@@ -115,7 +220,7 @@ export default function ProviderDetail() {
           queryClient.invalidateQueries({ queryKey: getGetProviderReviewsQueryKey(id) });
           queryClient.invalidateQueries({ queryKey: getGetProviderQueryKey(id) });
           toast({ title: "Review submitted!", description: "Thank you for your feedback." });
-          form.reset();
+          reviewForm.reset();
           setShowReviewForm(false);
         },
         onError: () => {
@@ -125,7 +230,6 @@ export default function ProviderDetail() {
     );
   };
 
-  // Compute rating breakdown from reviews
   const ratingCounts = [5, 4, 3, 2, 1].map((star) => ({
     label: `${star}`,
     count: reviews?.filter((r) => r.rating === star).length ?? 0,
@@ -173,18 +277,18 @@ export default function ProviderDetail() {
         </div>
         <CardContent className="px-6 pb-6 pt-0 relative">
           <div className="flex flex-col md:flex-row gap-5 items-start md:items-end -mt-14 mb-6">
-            <div className="w-28 h-28 rounded-2xl bg-card border-4 border-background shadow-lg overflow-hidden flex items-center justify-center text-3xl font-bold text-primary flex-shrink-0">
-              {provider.avatar ? (
-                <img src={provider.avatar} alt={provider.name} className="w-full h-full object-cover" />
+            <div className="w-28 h-28 rounded-2xl border-4 border-background shadow-lg overflow-hidden flex-shrink-0 bg-card flex items-center justify-center">
+              {editAvatar || provider.avatar ? (
+                <img src={editAvatar || provider.avatar!} alt={provider.name} className="w-full h-full object-cover" />
               ) : (
-                <span className="bg-primary/10 w-full h-full flex items-center justify-center">
+                <span className="bg-primary/10 w-full h-full flex items-center justify-center text-3xl font-bold text-primary">
                   {provider.name.substring(0, 2).toUpperCase()}
                 </span>
               )}
             </div>
             <div className="flex-1 pb-1">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h1 className="text-3xl font-serif font-bold" data-testid="text-provider-name">{provider.name}</h1>
+                <h1 className="text-3xl font-serif font-bold">{provider.name}</h1>
                 {provider.isVerified && (
                   <Badge className="bg-green-100 text-green-700 border-green-200 gap-1 font-medium">
                     <ShieldCheck className="w-3.5 h-3.5" /> Verified
@@ -196,7 +300,16 @@ export default function ProviderDetail() {
                 <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-primary/60" /> Member since {format(new Date(provider.joinedAt), "MMMM yyyy")}</span>
               </div>
             </div>
-            <div className="flex gap-3 w-full md:w-auto">
+            <div className="flex gap-2 w-full md:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={startEditing}
+                data-testid="btn-edit-profile"
+              >
+                <Pencil className="w-4 h-4" /> Edit Profile
+              </Button>
               <Link href="/marketplace">
                 <Button className="gap-2 w-full md:w-auto" data-testid="btn-browse-services">
                   Browse Services <ArrowRight className="w-4 h-4" />
@@ -207,23 +320,23 @@ export default function ProviderDetail() {
 
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-5 border-y border-border/50">
-            <div className="text-center" data-testid="stat-rating">
+            <div className="text-center">
               <div className="text-2xl font-bold mb-0.5">{provider.rating ? provider.rating.toFixed(1) : "New"}</div>
               <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
                 <Star className="w-3 h-3 fill-secondary text-secondary" /> Avg Rating
               </div>
             </div>
-            <div className="text-center border-l border-border/50" data-testid="stat-reviews">
+            <div className="text-center border-l border-border/50">
               <div className="text-2xl font-bold mb-0.5">{reviews?.length ?? provider.reviewCount ?? 0}</div>
               <div className="text-xs text-muted-foreground">Reviews</div>
             </div>
-            <div className="text-center border-l border-border/50" data-testid="stat-gigs">
+            <div className="text-center border-l border-border/50">
               <div className="text-2xl font-bold mb-0.5">{provider.completedGigs ?? 0}</div>
               <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
                 <Briefcase className="w-3 h-3" /> Gigs Done
               </div>
             </div>
-            <div className="text-center border-l border-border/50" data-testid="stat-earnings">
+            <div className="text-center border-l border-border/50">
               <div className="text-2xl font-bold text-primary mb-0.5">RM {(provider.totalEarnings ?? 0).toLocaleString()}</div>
               <div className="text-xs text-muted-foreground">Total Earned</div>
             </div>
@@ -231,8 +344,103 @@ export default function ProviderDetail() {
         </CardContent>
       </Card>
 
+      {/* Edit Profile Panel */}
+      <AnimatePresence>
+        {isEditing && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden mb-6"
+          >
+            <Card className="border-2 border-primary/20 shadow-sm bg-primary/5">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <Pencil className="w-5 h-5 text-primary" /> Edit Profile
+                  </h2>
+                  <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)}>
+                    <X className="w-5 h-5" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  {/* Profile photo */}
+                  <div className="md:col-span-1">
+                    <PhotoUploader
+                      current={provider.avatar}
+                      label="Profile Photo"
+                      round={true}
+                      onChange={(dataUrl) => setEditAvatar(dataUrl)}
+                    />
+                  </div>
+
+                  {/* Fields */}
+                  <div className="md:col-span-3 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Display Name</label>
+                        <Input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          placeholder="Your name"
+                          data-testid="input-edit-name"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Location</label>
+                        <Input
+                          value={editLocation}
+                          onChange={(e) => setEditLocation(e.target.value)}
+                          placeholder="e.g. Kota Bharu, Kelantan"
+                          data-testid="input-edit-location"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Bio</label>
+                      <Textarea
+                        value={editBio}
+                        onChange={(e) => setEditBio(e.target.value)}
+                        placeholder="Tell customers about yourself..."
+                        className="min-h-[90px] resize-none"
+                        data-testid="input-edit-bio"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Skills & Expertise</label>
+                      <Input
+                        value={editSkills}
+                        onChange={(e) => setEditSkills(e.target.value)}
+                        placeholder="e.g. Kuih Making, Catering, Food Delivery"
+                        data-testid="input-edit-skills"
+                      />
+                      <p className="text-xs text-muted-foreground">Separate skills with commas</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border/50">
+                  <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                  <Button
+                    onClick={handleSaveProfile}
+                    disabled={updateProvider.isPending}
+                    className="gap-2"
+                    data-testid="btn-save-profile"
+                  >
+                    <Check className="w-4 h-4" />
+                    {updateProvider.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column — About + Gigs + Reviews */}
+        {/* Left column */}
         <div className="lg:col-span-2 space-y-6">
           {/* About */}
           <Card className="border-none shadow-sm">
@@ -256,10 +464,17 @@ export default function ProviderDetail() {
                 <div className="space-y-3">
                   {providerGigs?.map((gig) => (
                     <Link key={gig.id} href={`/gigs/${gig.id}`}>
-                      <div
-                        className="flex items-center justify-between p-4 rounded-xl border border-border/60 hover:border-primary/30 hover:bg-primary/5 transition-all group cursor-pointer"
-                        data-testid={`gig-link-${gig.id}`}
-                      >
+                      <div className="flex items-center gap-4 p-4 rounded-xl border border-border/60 hover:border-primary/30 hover:bg-primary/5 transition-all group cursor-pointer">
+                        {/* Gig thumbnail */}
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                          {gig.imageUrl ? (
+                            <img src={gig.imageUrl} alt={gig.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                              <Briefcase className="w-6 h-6 text-primary/30" />
+                            </div>
+                          )}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge variant="secondary" className="text-xs bg-primary/5 text-primary border-primary/10">
@@ -271,15 +486,14 @@ export default function ProviderDetail() {
                               </span>
                             )}
                           </div>
-                          <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
-                            {gig.title}
-                          </h4>
-                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-secondary text-secondary" /> {gig.rating?.toFixed(1) ?? "New"} ({gig.reviewCount ?? 0})</span>
+                          <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">{gig.title}</h4>
+                          <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
+                            <Star className="w-3 h-3 fill-secondary text-secondary" />
+                            <span>{gig.rating?.toFixed(1) ?? "New"} ({gig.reviewCount ?? 0})</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 ml-4 flex-shrink-0">
-                          <span className="text-lg font-bold text-foreground">RM {gig.price.toFixed(0)}</span>
+                          <span className="text-lg font-bold">RM {gig.price.toFixed(0)}</span>
                           <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
                       </div>
@@ -307,7 +521,6 @@ export default function ProviderDetail() {
                 </Button>
               </div>
 
-              {/* Write Review Form */}
               <AnimatePresence>
                 {showReviewForm && (
                   <motion.div
@@ -319,39 +532,37 @@ export default function ProviderDetail() {
                   >
                     <div className="mb-6 p-5 bg-muted/30 rounded-xl border border-border/60">
                       <h3 className="font-semibold mb-4">Share Your Experience</h3>
-                      <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmitReview)} className="space-y-4">
+                      <Form {...reviewForm}>
+                        <form onSubmit={reviewForm.handleSubmit(onSubmitReview)} className="space-y-4">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
-                              control={form.control}
+                              control={reviewForm.control}
                               name="reviewerName"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Your Name</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="e.g. Ahmad Bin Razak" {...field} data-testid="input-reviewer-name" />
+                                    <Input placeholder="e.g. Ahmad Bin Razak" {...field} />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
                             <FormField
-                              control={form.control}
+                              control={reviewForm.control}
                               name="gigId"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Service Booked</FormLabel>
                                   <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
-                                      <SelectTrigger data-testid="select-gig">
+                                      <SelectTrigger>
                                         <SelectValue placeholder="Select service" />
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
                                       {providerGigs?.map((gig) => (
-                                        <SelectItem key={gig.id} value={String(gig.id)}>
-                                          {gig.title}
-                                        </SelectItem>
+                                        <SelectItem key={gig.id} value={String(gig.id)}>{gig.title}</SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
@@ -361,14 +572,14 @@ export default function ProviderDetail() {
                             />
                           </div>
                           <FormField
-                            control={form.control}
+                            control={reviewForm.control}
                             name="rating"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Rating</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                   <FormControl>
-                                    <SelectTrigger data-testid="select-rating">
+                                    <SelectTrigger>
                                       <SelectValue placeholder="Select rating" />
                                     </SelectTrigger>
                                   </FormControl>
@@ -385,29 +596,23 @@ export default function ProviderDetail() {
                             )}
                           />
                           <FormField
-                            control={form.control}
+                            control={reviewForm.control}
                             name="comment"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Your Review</FormLabel>
                                 <FormControl>
                                   <Textarea
-                                    placeholder="Share your experience with this provider..."
+                                    placeholder="Share your experience..."
                                     className="min-h-[100px] resize-none"
                                     {...field}
-                                    data-testid="textarea-comment"
                                   />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
-                          <Button
-                            type="submit"
-                            className="gap-2 w-full sm:w-auto"
-                            disabled={createReview.isPending}
-                            data-testid="btn-submit-review"
-                          >
+                          <Button type="submit" className="gap-2" disabled={createReview.isPending}>
                             <Send className="w-4 h-4" />
                             {createReview.isPending ? "Submitting..." : "Submit Review"}
                           </Button>
@@ -418,7 +623,6 @@ export default function ProviderDetail() {
                 )}
               </AnimatePresence>
 
-              {/* Review list */}
               {reviewsLoading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map(i => (
@@ -448,7 +652,6 @@ export default function ProviderDetail() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
-                      data-testid={`review-card-${review.id}`}
                     >
                       <div className="flex gap-4">
                         <Avatar className="w-10 h-10 flex-shrink-0 border border-border">
@@ -458,7 +661,7 @@ export default function ProviderDetail() {
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-                            <span className="font-semibold text-foreground" data-testid={`review-author-${review.id}`}>{review.reviewerName}</span>
+                            <span className="font-semibold">{review.reviewerName}</span>
                             <span className="text-xs text-muted-foreground">{format(new Date(review.createdAt), "d MMM yyyy")}</span>
                           </div>
                           <div className="flex items-center gap-2 mb-2">
@@ -467,9 +670,7 @@ export default function ProviderDetail() {
                               {review.gigTitle}
                             </span>
                           </div>
-                          <p className="text-muted-foreground text-sm leading-relaxed" data-testid={`review-comment-${review.id}`}>
-                            {review.comment}
-                          </p>
+                          <p className="text-muted-foreground text-sm leading-relaxed">{review.comment}</p>
                         </div>
                       </div>
                       {index < (reviews?.length ?? 0) - 1 && <Separator className="mt-5" />}
@@ -481,16 +682,13 @@ export default function ProviderDetail() {
           </Card>
         </div>
 
-        {/* Right sidebar — Rating breakdown + Skills */}
+        {/* Right sidebar */}
         <div className="space-y-6">
-          {/* Rating overview */}
           <Card className="border-none shadow-sm sticky top-4">
             <CardContent className="p-6">
               <h3 className="font-bold text-lg mb-4">Rating Overview</h3>
               <div className="flex items-center gap-4 mb-5">
-                <div className="text-5xl font-bold text-foreground">
-                  {provider.rating ? provider.rating.toFixed(1) : "—"}
-                </div>
+                <div className="text-5xl font-bold">{provider.rating ? provider.rating.toFixed(1) : "—"}</div>
                 <div>
                   <StarRating rating={Math.round(provider.rating ?? 0)} size="lg" />
                   <p className="text-sm text-muted-foreground mt-1">{reviews?.length ?? 0} reviews</p>
@@ -498,12 +696,7 @@ export default function ProviderDetail() {
               </div>
               <div className="space-y-2">
                 {ratingCounts.map(({ label, count }) => (
-                  <RatingBar
-                    key={label}
-                    label={label}
-                    count={count}
-                    total={reviews?.length ?? 0}
-                  />
+                  <RatingBar key={label} label={label} count={count} total={reviews?.length ?? 0} />
                 ))}
               </div>
             </CardContent>
@@ -517,8 +710,7 @@ export default function ProviderDetail() {
                   <Badge
                     key={i}
                     variant="secondary"
-                    className="bg-primary/5 text-primary border-primary/10 hover:bg-primary/10 transition-colors"
-                    data-testid={`skill-badge-${i}`}
+                    className="bg-primary/5 text-primary border-primary/10"
                   >
                     {skill}
                   </Badge>
@@ -529,11 +721,7 @@ export default function ProviderDetail() {
             <Separator />
 
             <CardFooter className="p-6">
-              <Button
-                className="w-full gap-2"
-                onClick={() => setShowReviewForm(true)}
-                data-testid="btn-write-review-sidebar"
-              >
+              <Button className="w-full gap-2" onClick={() => setShowReviewForm(true)}>
                 <MessageSquare className="w-4 h-4" /> Write a Review
               </Button>
             </CardFooter>

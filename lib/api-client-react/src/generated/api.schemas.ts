@@ -176,6 +176,35 @@ export interface CreateProviderReviewParams {
   id: number;
 }
 
+export interface UpdateProviderBody {
+  name?: string;
+  bio?: string;
+  location?: string;
+  skills?: string[];
+  /** Base64 data URL for profile photo */
+  avatar?: string;
+}
+
+export type UpdateGigBodyStatus =
+  (typeof UpdateGigBodyStatus)[keyof typeof UpdateGigBodyStatus];
+
+export const UpdateGigBodyStatus = {
+  active: "active",
+  paused: "paused",
+  completed: "completed",
+} as const;
+
+export interface UpdateGigBody {
+  title?: string;
+  description?: string;
+  category?: string;
+  price?: number;
+  location?: string;
+  status?: UpdateGigBodyStatus;
+  /** Base64 data URL for service photo */
+  imageUrl?: string;
+}
+
 export type ListGigsParams = {
   category?: string;
   location?: string;

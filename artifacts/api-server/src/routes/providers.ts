@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, providersTable, gigsTable, reviewsTable } from "@workspace/db";
 import { eq, ilike, and, sql } from "drizzle-orm";
-import { ListProvidersQueryParams, CreateProviderBody, GetProviderParams, CreateProviderReviewBody } from "@workspace/api-zod";
+import { ListProvidersQueryParams, CreateProviderBody, GetProviderParams, CreateProviderReviewBody, UpdateProviderBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -63,6 +63,66 @@ router.get("/:id", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to get provider");
     res.status(500).json({ error: "Failed to get provider" });
+  }
+});
+
+router.patch("/:id", async (req, res) => {
+  try {
+    const idParsed = GetProviderParams.safeParse({ id: Number(req.params.id) });
+    const bodyParsed = UpdateProviderBody.safeParse(req.body);
+
+    if (!idParsed.success) {
+      res.status(400).json({ error: "Invalid provider ID" });
+      return;
+    }
+    if (!bodyParsed.success) {
+      res.status(400).json({ error: "Invalid request body" });
+      return;
+    }
+
+    const updates: Record<string, unknown> = {};
+    const body = bodyParsed.data;
+    if (body.name !== undefined) updates.name = body.name;
+    if (body.bio !== undefined) updates.bio = body.bio;
+    if (body.location !== undefined) updates.location = body.location;
+    if (body.skills !== undefined) updates.skills = body.skills;
+    if (body.avatar !== undefined) updates.avatar = body.avatar;
+
+    if (Object.keys(updates).length === 0) {
+      const [existing] = await db.select().from(providersTable).where(eq(providersTable.id, idParsed.data.id));
+      if (!existing) {
+        res.status(404).json({ error: "Provider not found" });
+        return;
+      }
+      res.json(existing);
+      return;
+    }
+
+    const [updated] = await db
+      .update(providersTable)
+      .set(updates)
+      .where(eq(providersTable.id, idParsed.data.id))
+      .returning();
+
+    if (!updated) {
+      res.status(404).json({ error: "Provider not found" });
+      return;
+    }
+
+    const gigUpdates: Record<string, unknown> = {};
+    if (body.name !== undefined) gigUpdates.providerName = body.name;
+    if (body.avatar !== undefined) gigUpdates.providerAvatar = body.avatar;
+
+    if (Object.keys(gigUpdates).length > 0) {
+      await db.update(gigsTable)
+        .set(gigUpdates)
+        .where(eq(gigsTable.providerId, idParsed.data.id));
+    }
+
+    res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "Failed to update provider");
+    res.status(500).json({ error: "Failed to update provider" });
   }
 });
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, gigsTable } from "@workspace/db";
 import { eq, ilike, and, or } from "drizzle-orm";
-import { ListGigsQueryParams, CreateGigBody, GetGigParams } from "@workspace/api-zod";
+import { ListGigsQueryParams, CreateGigBody, GetGigParams, UpdateGigBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -71,6 +71,58 @@ router.get("/:id", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to get gig");
     res.status(500).json({ error: "Failed to get gig" });
+  }
+});
+
+router.patch("/:id", async (req, res) => {
+  try {
+    const idParsed = GetGigParams.safeParse({ id: Number(req.params.id) });
+    const bodyParsed = UpdateGigBody.safeParse(req.body);
+
+    if (!idParsed.success) {
+      res.status(400).json({ error: "Invalid gig ID" });
+      return;
+    }
+    if (!bodyParsed.success) {
+      res.status(400).json({ error: "Invalid request body" });
+      return;
+    }
+
+    const updates: Record<string, unknown> = {};
+    const body = bodyParsed.data;
+    if (body.title !== undefined) updates.title = body.title;
+    if (body.description !== undefined) updates.description = body.description;
+    if (body.category !== undefined) updates.category = body.category;
+    if (body.price !== undefined) updates.price = body.price;
+    if (body.location !== undefined) updates.location = body.location;
+    if (body.status !== undefined) updates.status = body.status;
+    if (body.imageUrl !== undefined) updates.imageUrl = body.imageUrl;
+
+    if (Object.keys(updates).length === 0) {
+      const [existing] = await db.select().from(gigsTable).where(eq(gigsTable.id, idParsed.data.id));
+      if (!existing) {
+        res.status(404).json({ error: "Gig not found" });
+        return;
+      }
+      res.json(existing);
+      return;
+    }
+
+    const [updated] = await db
+      .update(gigsTable)
+      .set(updates)
+      .where(eq(gigsTable.id, idParsed.data.id))
+      .returning();
+
+    if (!updated) {
+      res.status(404).json({ error: "Gig not found" });
+      return;
+    }
+
+    res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "Failed to update gig");
+    res.status(500).json({ error: "Failed to update gig" });
   }
 });
 

@@ -28,3 +28,6 @@ export * from "./provider";
 export * from "./review";
 export * from "./updateBookingStatusBody";
 export * from "./updateBookingStatusBodyStatus";
+export * from "./updateGigBody";
+export * from "./updateGigBodyStatus";
+export * from "./updateProviderBody";
