@@ -23,12 +23,26 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 
-const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
-  bio: z.string().min(10, "Bio must be at least 10 characters.").max(500, "Bio is too long."),
-  location: z.string().min(2, "Location is required."),
-  skills: z.array(z.string()).min(1, "Please select at least one skill."),
-});
+const formSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters."),
+    bio: z.string().min(10, "Bio must be at least 10 characters.").max(500, "Bio is too long."),
+    location: z.string().min(2, "Location is required."),
+    skills: z.array(z.string()).min(1, "Please select at least one skill."),
+    otherSkill: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.skills.includes("Other")) {
+      const value = data.otherSkill?.trim() ?? "";
+      if (value.length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["otherSkill"],
+          message: "Please specify your skill (at least 2 characters).",
+        });
+      }
+    }
+  });
 
 const SKILL_OPTIONS = [
   "Cooking", "Baking", "Catering", 
@@ -36,7 +50,8 @@ const SKILL_OPTIONS = [
   "Plumbing", "Electrical", "Carpentry",
   "Tour Guiding", "Language Teaching",
   "Weaving", "Pottery", "Woodworking",
-  "Delivery", "Moving", "Farming"
+  "Delivery", "Moving", "Farming",
+  "Other"
 ];
 
 export default function Register() {
@@ -53,6 +68,7 @@ export default function Register() {
       bio: "",
       location: "",
       skills: [],
+      otherSkill: "",
     },
   });
 
@@ -64,11 +80,18 @@ export default function Register() {
     
     setSelectedSkills(updated);
     form.setValue("skills", updated, { shouldValidate: true });
+    if (skill === "Other" && !updated.includes("Other")) {
+      form.setValue("otherSkill", "", { shouldValidate: true });
+    }
   };
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    const finalSkills = values.skills.includes("Other")
+      ? [...values.skills.filter((s) => s !== "Other"), values.otherSkill!.trim()]
+      : values.skills;
+    const { otherSkill: _omit, ...rest } = values;
     createProvider.mutate(
-      { data: values },
+      { data: { ...rest, skills: finalSkills } },
       {
         onSuccess: (provider) => {
           toast({
@@ -215,6 +238,27 @@ export default function Register() {
                       </FormItem>
                     )}
                   />
+
+                  {selectedSkills.includes("Other") && (
+                    <FormField
+                      control={form.control}
+                      name="otherSkill"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Specify Your Skill</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g. Henna Art, Tailoring"
+                              {...field}
+                              data-testid="input-other-skill"
+                            />
+                          </FormControl>
+                          <FormDescription>Tell us about the skill not listed above.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <Button 
                     type="submit" 
