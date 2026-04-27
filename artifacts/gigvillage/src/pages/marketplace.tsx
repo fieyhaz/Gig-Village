@@ -12,6 +12,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getGigImageUrl, getProviderAvatarUrl } from "@/lib/defaults";
 
 export default function Marketplace() {
   const [search, setSearch] = useState("");
@@ -135,17 +136,17 @@ export default function Marketplace() {
             >
               <Card className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow group cursor-pointer border-border/50">
                 <div className="relative h-48 overflow-hidden bg-muted">
-                  {gig.imageUrl ? (
-                    <img 
-                      src={gig.imageUrl} 
-                      alt={gig.title} 
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-secondary/10 flex items-center justify-center">
-                      <BriefcaseIcon category={gig.category} className="w-12 h-12 text-secondary/40" />
-                    </div>
-                  )}
+                  <img 
+                    src={getGigImageUrl(gig.imageUrl, gig.category)} 
+                    alt={gig.title} 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                    loading="lazy"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      img.onerror = null;
+                      img.src = getGigImageUrl(null, "default");
+                    }}
+                  />
                   <div className="absolute top-3 left-3">
                     <Badge variant="secondary" className="bg-background/90 backdrop-blur text-foreground font-medium shadow-sm">
                       {gig.category}
@@ -166,7 +167,7 @@ export default function Marketplace() {
                   
                   <div className="flex items-center gap-3 mt-auto">
                     <Avatar className="h-10 w-10 border border-border">
-                      <AvatarImage src={gig.providerAvatar} alt={gig.providerName} />
+                      <AvatarImage src={getProviderAvatarUrl(gig.providerAvatar, gig.providerName)} alt={gig.providerName} />
                       <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
                         {gig.providerName.substring(0, 2).toUpperCase()}
                       </AvatarFallback>

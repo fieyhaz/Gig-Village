@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getProviderAvatarUrl } from "@/lib/defaults";
 
 export default function Providers() {
   const [skill, setSkill] = useState("");
@@ -110,7 +111,7 @@ export default function Providers() {
                 <CardContent className="p-6 flex-1 flex flex-col">
                   <div className="flex items-start gap-4 mb-4">
                     <Avatar className="h-16 w-16 border-2 border-primary/20">
-                      <AvatarImage src={provider.avatar} alt={provider.name} />
+                      <AvatarImage src={getProviderAvatarUrl(provider.avatar, provider.name)} alt={provider.name} />
                       <AvatarFallback className="bg-primary/5 text-primary text-xl font-bold">
                         {provider.name.substring(0, 2).toUpperCase()}
                       </AvatarFallback>

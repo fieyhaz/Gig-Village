@@ -34,6 +34,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { getProviderAvatarUrl, getGigImageUrl } from "@/lib/defaults";
 
 const reviewFormSchema = z.object({
   gigId: z.string().min(1, "Please select a service"),
@@ -278,13 +279,11 @@ export default function ProviderDetail() {
         <CardContent className="px-6 pb-6 pt-0 relative">
           <div className="flex flex-col md:flex-row gap-5 items-start md:items-end -mt-14 mb-6">
             <div className="w-28 h-28 rounded-2xl border-4 border-background shadow-lg overflow-hidden flex-shrink-0 bg-card flex items-center justify-center">
-              {editAvatar || provider.avatar ? (
-                <img src={editAvatar || provider.avatar!} alt={provider.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="bg-primary/10 w-full h-full flex items-center justify-center text-3xl font-bold text-primary">
-                  {provider.name.substring(0, 2).toUpperCase()}
-                </span>
-              )}
+              <img
+                src={editAvatar || getProviderAvatarUrl(provider.avatar, provider.name)}
+                alt={provider.name}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="flex-1 pb-1">
               <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -467,13 +466,12 @@ export default function ProviderDetail() {
                       <div className="flex items-center gap-4 p-4 rounded-xl border border-border/60 hover:border-primary/30 hover:bg-primary/5 transition-all group cursor-pointer">
                         {/* Gig thumbnail */}
                         <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                          {gig.imageUrl ? (
-                            <img src={gig.imageUrl} alt={gig.title} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-                              <Briefcase className="w-6 h-6 text-primary/30" />
-                            </div>
-                          )}
+                          <img
+                            src={getGigImageUrl(gig.imageUrl, gig.category)}
+                            alt={gig.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
