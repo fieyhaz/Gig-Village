@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, gigsTable } from "@workspace/db";
+import { db, gigsTable, providersTable } from "@workspace/db";
 import { eq, ilike, and, or } from "drizzle-orm";
 import { ListGigsQueryParams, CreateGigBody, GetGigParams, UpdateGigBody } from "@workspace/api-zod";
 
@@ -47,7 +47,22 @@ router.post("/", async (req, res) => {
       res.status(400).json({ error: "Invalid request body", details: parsed.error });
       return;
     }
-    const [gig] = await db.insert(gigsTable).values(parsed.data).returning();
+    const [provider] = await db
+      .select()
+      .from(providersTable)
+      .where(eq(providersTable.id, parsed.data.providerId));
+    if (!provider) {
+      res.status(404).json({ error: "Provider not found" });
+      return;
+    }
+    const [gig] = await db
+      .insert(gigsTable)
+      .values({
+        ...parsed.data,
+        providerName: provider.name,
+        providerAvatar: provider.avatar,
+      })
+      .returning();
     res.status(201).json(gig);
   } catch (err) {
     req.log.error({ err }, "Failed to create gig");
