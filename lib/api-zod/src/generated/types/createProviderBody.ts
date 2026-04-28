@@ -7,6 +7,8 @@
  */
 
 export interface CreateProviderBody {
+  /** Link this provider profile to a user account */
+  userId?: number;
   name: string;
   bio: string;
   location: string;

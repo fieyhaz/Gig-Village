@@ -8,6 +8,7 @@ export const bookingsTable = pgTable("bookings", {
   gigTitle: text("gig_title").notNull(),
   providerId: integer("provider_id").notNull(),
   providerName: text("provider_name").notNull(),
+  customerUserId: integer("customer_user_id"),
   customerName: text("customer_name").notNull(),
   customerContact: text("customer_contact").notNull(),
   scheduledDate: text("scheduled_date").notNull(),

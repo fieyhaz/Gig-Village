@@ -27,12 +27,19 @@ A community-based gig economy web app for rural youth and graduate entrepreneurs
 - `/marketplace` — Browse gig listings with category/location/search filters
 - `/providers` — Directory of registered service providers
 - `/providers/:id` — Full provider profile with bio, stats, services, reviews, review form, rating breakdown
-- `/bookings` — Booking management with status tabs
+- `/bookings` — Bookings dashboard with two role tabs (My Orders / My Gig Bookings) and status sub-tabs
 - `/impact` — Impact dashboard with stats, charts, activity feed
-- `/register` — Register as a service provider
+- `/login` — Lightweight email + name sign-in (find-or-create user)
+- `/register`, `/provider/onboarding` — Provider onboarding (requires login; links provider to user)
 - `/post-gig` — Post a new gig listing
-- `/gigs/:id` — Gig detail page with booking form
+- `/gigs/:id` — Gig detail page with booking form (requires login to book)
 - `/bookings/:id` — Booking detail page
+
+**Auth & Roles:**
+- All accounts live in `users` (id, name, email). Auth state stored in `localStorage` (`gigvillage_auth_user`).
+- A user becomes a Provider by completing onboarding — that creates a row in `providers` with `userId` set. The user record is enriched with `providerId` on read.
+- Same user can be both Customer (places orders) and Provider (receives bookings on their gigs).
+- Bookings carry `customerUserId` (the booker) and `providerId` (the gig's owner). The bookings list endpoint filters with `?customerUserId=X` or `?providerId=Y`.
 
 **Brand:** Deep crimson red (#8B1A1A) primary, warm gold (#C9A84C) accent, cream background — Malaysian heritage palette.
 

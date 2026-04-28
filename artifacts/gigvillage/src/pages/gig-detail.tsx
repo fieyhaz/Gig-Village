@@ -4,7 +4,8 @@ import {
   useUpdateGig,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useAuth } from "@/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -92,12 +93,18 @@ export default function GigDetail() {
 
   const createBooking = useCreateBooking();
   const updateGig = useUpdateGig();
+  const { user, isAuthenticated } = useAuth();
 
   // Booking form
   const [customerName, setCustomerName] = useState("");
   const [customerContact, setCustomerContact] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (user && !customerName) setCustomerName(user.name);
+    if (user && !customerContact) setCustomerContact(user.email);
+  }, [user]);
 
   // Edit state
   const [isEditing, setIsEditing] = useState(false);
@@ -157,9 +164,18 @@ export default function GigDetail() {
   const handleBook = (e: React.FormEvent) => {
     e.preventDefault();
     if (!gig) return;
+    if (!isAuthenticated || !user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to book a service.",
+      });
+      setLocation(`/login?redirect=/gigs/${gig.id}`);
+      return;
+    }
     createBooking.mutate({
       data: {
         gigId: gig.id,
+        customerUserId: user.id,
         customerName,
         customerContact,
         scheduledDate: new Date(scheduledDate).toISOString(),

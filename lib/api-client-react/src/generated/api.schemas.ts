@@ -44,6 +44,7 @@ export interface CreateGigBody {
 
 export interface Provider {
   id: number;
+  userId?: number | null;
   name: string;
   bio: string;
   location: string;
@@ -58,10 +59,26 @@ export interface Provider {
 }
 
 export interface CreateProviderBody {
+  /** Link this provider profile to a user account */
+  userId?: number;
   name: string;
   bio: string;
   location: string;
   skills: string[];
+}
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  /** Set if the user has onboarded as a provider */
+  providerId?: number | null;
+  createdAt: string;
+}
+
+export interface SignInUserBody {
+  name: string;
+  email: string;
 }
 
 export type BookingStatus = (typeof BookingStatus)[keyof typeof BookingStatus];
@@ -79,6 +96,7 @@ export interface Booking {
   gigTitle: string;
   providerId: number;
   providerName: string;
+  customerUserId?: number | null;
   customerName: string;
   customerContact: string;
   scheduledDate: string;
@@ -90,6 +108,8 @@ export interface Booking {
 
 export interface CreateBookingBody {
   gigId: number;
+  /** Optional id of the logged-in user placing the booking */
+  customerUserId?: number;
   customerName: string;
   customerContact: string;
   scheduledDate: string;
@@ -214,4 +234,15 @@ export type ListGigsParams = {
 export type ListProvidersParams = {
   skill?: string;
   location?: string;
+};
+
+export type ListBookingsParams = {
+  /**
+   * Only return bookings created by this user (My Orders)
+   */
+  customerUserId?: number;
+  /**
+   * Only return bookings received by this provider (My Gig Bookings)
+   */
+  providerId?: number;
 };

@@ -1,13 +1,36 @@
 import { Router } from "express";
 import { db, bookingsTable, gigsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
-import { CreateBookingBody, GetBookingParams, UpdateBookingStatusParams, UpdateBookingStatusBody } from "@workspace/api-zod";
+import { eq, and, sql, type SQL } from "drizzle-orm";
+import {
+  CreateBookingBody,
+  GetBookingParams,
+  UpdateBookingStatusParams,
+  UpdateBookingStatusBody,
+  ListBookingsQueryParams,
+} from "@workspace/api-zod";
 
 const router = Router();
 
 router.get("/", async (req, res) => {
   try {
-    const bookings = await db.select().from(bookingsTable);
+    const parsed = ListBookingsQueryParams.safeParse(req.query);
+    const params = parsed.success ? parsed.data : {};
+
+    const conditions: SQL[] = [];
+    if (params.customerUserId !== undefined) {
+      conditions.push(eq(bookingsTable.customerUserId, params.customerUserId));
+    }
+    if (params.providerId !== undefined) {
+      conditions.push(eq(bookingsTable.providerId, params.providerId));
+    }
+
+    let query = db.select().from(bookingsTable).$dynamic();
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    query = query.orderBy(sql`${bookingsTable.createdAt} DESC`);
+
+    const bookings = await query;
     res.json(bookings);
   } catch (err) {
     req.log.error({ err }, "Failed to list bookings");
@@ -23,7 +46,7 @@ router.post("/", async (req, res) => {
       return;
     }
 
-    const { gigId, customerName, customerContact, scheduledDate, notes } = parsed.data;
+    const { gigId, customerUserId, customerName, customerContact, scheduledDate, notes } = parsed.data;
 
     const [gig] = await db.select().from(gigsTable).where(eq(gigsTable.id, gigId));
     if (!gig) {
@@ -36,6 +59,7 @@ router.post("/", async (req, res) => {
       gigTitle: gig.title,
       providerId: gig.providerId,
       providerName: gig.providerName,
+      customerUserId: customerUserId ?? null,
       customerName,
       customerContact,
       scheduledDate,

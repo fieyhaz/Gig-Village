@@ -21,7 +21,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth, updateAuthUser } from "@/lib/auth";
 
 const formSchema = z
   .object({
@@ -58,13 +59,22 @@ export default function Register() {
   const [, setLocationPath] = useLocation();
   const { toast } = useToast();
   const createProvider = useCreateProvider();
-  
+  const { user, isAuthenticated, isProvider } = useAuth();
+
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLocationPath("/login?redirect=/provider/onboarding");
+    } else if (isProvider && user?.providerId) {
+      setLocationPath(`/providers/${user.providerId}`);
+    }
+  }, [isAuthenticated, isProvider, user?.providerId, setLocationPath]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
+      name: user?.name ?? "",
       bio: "",
       location: "",
       skills: [],
@@ -90,15 +100,20 @@ export default function Register() {
       ? [...values.skills.filter((s) => s !== "Other"), values.otherSkill!.trim()]
       : values.skills;
     const { otherSkill: _omit, ...rest } = values;
+    if (!user) {
+      setLocationPath("/login?redirect=/provider/onboarding");
+      return;
+    }
     createProvider.mutate(
-      { data: { ...rest, skills: finalSkills } },
+      { data: { ...rest, skills: finalSkills, userId: user.id } },
       {
         onSuccess: (provider) => {
+          updateAuthUser({ providerId: provider.id });
           toast({
             title: "Registration Successful!",
             description: `Welcome to GigVillage, ${provider.name}.`,
           });
-          setLocationPath("/providers");
+          setLocationPath(`/providers/${provider.id}`);
         },
         onError: () => {
           toast({

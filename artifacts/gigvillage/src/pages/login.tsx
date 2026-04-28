@@ -4,6 +4,7 @@ import * as z from "zod";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { LogIn } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,22 +35,34 @@ const formSchema = z.object({
 export default function Login() {
   const [, setLocationPath] = useLocation();
   const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
 
   const params = new URLSearchParams(window.location.search);
-  const redirectTo = params.get("redirect") || "/provider/onboarding";
+  const redirectTo = params.get("redirect") || "/bookings";
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { name: "", email: "" },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    loginUser({ name: values.name.trim(), email: values.email.trim() });
-    toast({
-      title: "Welcome to GigVillage!",
-      description: `Signed in as ${values.name}.`,
-    });
-    setLocationPath(redirectTo);
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setSubmitting(true);
+    try {
+      const user = await loginUser(values);
+      toast({
+        title: "Welcome to GigVillage!",
+        description: `Signed in as ${user.name}.`,
+      });
+      setLocationPath(redirectTo);
+    } catch {
+      toast({
+        title: "Sign in failed",
+        description: "Could not sign you in. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -64,7 +78,9 @@ export default function Login() {
               <LogIn className="w-7 h-7 text-primary" />
             </div>
             <CardTitle className="text-2xl font-serif">Sign in to GigVillage</CardTitle>
-            <CardDescription>Sign in to continue your provider journey.</CardDescription>
+            <CardDescription>
+              One account works for both booking services and offering them.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -100,6 +116,9 @@ export default function Login() {
                           data-testid="input-login-email"
                         />
                       </FormControl>
+                      <FormDescription>
+                        New here? An account is created automatically.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -107,9 +126,10 @@ export default function Login() {
                 <Button
                   type="submit"
                   className="w-full h-11 font-bold"
+                  disabled={submitting}
                   data-testid="btn-login-submit"
                 >
-                  Sign In
+                  {submitting ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
             </Form>

@@ -8,6 +8,8 @@
 
 export interface CreateBookingBody {
   gigId: number;
+  /** Optional id of the logged-in user placing the booking */
+  customerUserId?: number;
   customerName: string;
   customerContact: string;
   scheduledDate: string;

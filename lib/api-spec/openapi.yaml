@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User accounts (everyone is a user; can also be a provider)
   - name: gigs
     description: Gig/service listings
   - name: providers
@@ -31,6 +33,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users:
+    post:
+      operationId: signInUser
+      tags: [users]
+      summary: Find or create a user account by email (simple sign-in)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInUserBody"
+      responses:
+        "200":
+          description: Existing or newly created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user by id (with optional providerId if onboarded)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
 
   /gigs:
     get:
@@ -271,7 +311,18 @@ paths:
     get:
       operationId: listBookings
       tags: [bookings]
-      summary: List bookings
+      summary: List bookings (optionally filter by customer or provider)
+      parameters:
+        - in: query
+          name: customerUserId
+          schema:
+            type: integer
+          description: Only return bookings created by this user (My Orders)
+        - in: query
+          name: providerId
+          schema:
+            type: integer
+          description: Only return bookings received by this provider (My Gig Bookings)
       responses:
         "200":
           description: List of bookings
@@ -466,6 +517,9 @@ components:
       properties:
         id:
           type: integer
+        userId:
+          type: integer
+          nullable: true
         name:
           type: string
         bio:
@@ -502,6 +556,9 @@ components:
     CreateProviderBody:
       type: object
       properties:
+        userId:
+          type: integer
+          description: Link this provider profile to a user account
         name:
           type: string
         bio:
@@ -518,6 +575,38 @@ components:
         - location
         - skills
 
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        providerId:
+          type: integer
+          nullable: true
+          description: Set if the user has onboarded as a provider
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - email
+        - createdAt
+
+    SignInUserBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+      required:
+        - name
+        - email
+
     Booking:
       type: object
       properties:
@@ -531,6 +620,9 @@ components:
           type: integer
         providerName:
           type: string
+        customerUserId:
+          type: integer
+          nullable: true
         customerName:
           type: string
         customerContact:
@@ -564,6 +656,9 @@ components:
       properties:
         gigId:
           type: integer
+        customerUserId:
+          type: integer
+          description: Optional id of the logged-in user placing the booking
         customerName:
           type: string
         customerContact:

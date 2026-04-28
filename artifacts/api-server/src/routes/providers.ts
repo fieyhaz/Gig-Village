@@ -39,6 +39,18 @@ router.post("/", async (req, res) => {
       res.status(400).json({ error: "Invalid request body", details: parsed.error });
       return;
     }
+
+    if (parsed.data.userId !== undefined && parsed.data.userId !== null) {
+      const [existing] = await db
+        .select()
+        .from(providersTable)
+        .where(eq(providersTable.userId, parsed.data.userId));
+      if (existing) {
+        res.status(200).json(existing);
+        return;
+      }
+    }
+
     const [provider] = await db.insert(providersTable).values(parsed.data).returning();
     res.status(201).json(provider);
   } catch (err) {

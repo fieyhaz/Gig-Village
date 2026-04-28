@@ -27,13 +27,16 @@ import type {
   Gig,
   HealthStatus,
   ImpactSummary,
+  ListBookingsParams,
   ListGigsParams,
   ListProvidersParams,
   Provider,
   Review,
+  SignInUserBody,
   UpdateBookingStatusBody,
   UpdateGigBody,
   UpdateProviderBody,
+  User,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -112,6 +115,169 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Find or create a user account by email (simple sign-in)
+ */
+export const getSignInUserUrl = () => {
+  return `/api/users`;
+};
+
+export const signInUser = async (
+  signInUserBody: SignInUserBody,
+  options?: RequestInit,
+): Promise<User> => {
+  return customFetch<User>(getSignInUserUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(signInUserBody),
+  });
+};
+
+export const getSignInUserMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof signInUser>>,
+    TError,
+    { data: BodyType<SignInUserBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof signInUser>>,
+  TError,
+  { data: BodyType<SignInUserBody> },
+  TContext
+> => {
+  const mutationKey = ["signInUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof signInUser>>,
+    { data: BodyType<SignInUserBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return signInUser(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SignInUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof signInUser>>
+>;
+export type SignInUserMutationBody = BodyType<SignInUserBody>;
+export type SignInUserMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Find or create a user account by email (simple sign-in)
+ */
+export const useSignInUser = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof signInUser>>,
+    TError,
+    { data: BodyType<SignInUserBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof signInUser>>,
+  TError,
+  { data: BodyType<SignInUserBody> },
+  TContext
+> => {
+  return useMutation(getSignInUserMutationOptions(options));
+};
+
+/**
+ * @summary Get a user by id (with optional providerId if onboarded)
+ */
+export const getGetUserUrl = (id: number) => {
+  return `/api/users/${id}`;
+};
+
+export const getUser = async (
+  id: number,
+  options?: RequestInit,
+): Promise<User> => {
+  return customFetch<User>(getGetUserUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUserQueryKey = (id: number) => {
+  return [`/api/users/${id}`] as const;
+};
+
+export const getGetUserQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUser>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getUser>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUserQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUser>>> = ({
+    signal,
+  }) => getUser(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getUser>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetUserQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUser>>
+>;
+export type GetUserQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get a user by id (with optional providerId if onboarded)
+ */
+
+export function useGetUser<
+  TData = Awaited<ReturnType<typeof getUser>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getUser>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUserQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -1078,43 +1244,59 @@ export const useCreateProviderReview = <
 };
 
 /**
- * @summary List bookings
+ * @summary List bookings (optionally filter by customer or provider)
  */
-export const getListBookingsUrl = () => {
-  return `/api/bookings`;
+export const getListBookingsUrl = (params?: ListBookingsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/bookings?${stringifiedParams}`
+    : `/api/bookings`;
 };
 
 export const listBookings = async (
+  params?: ListBookingsParams,
   options?: RequestInit,
 ): Promise<Booking[]> => {
-  return customFetch<Booking[]>(getListBookingsUrl(), {
+  return customFetch<Booking[]>(getListBookingsUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListBookingsQueryKey = () => {
-  return [`/api/bookings`] as const;
+export const getListBookingsQueryKey = (params?: ListBookingsParams) => {
+  return [`/api/bookings`, ...(params ? [params] : [])] as const;
 };
 
 export const getListBookingsQueryOptions = <
   TData = Awaited<ReturnType<typeof listBookings>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listBookings>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: ListBookingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBookings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListBookingsQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListBookingsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listBookings>>> = ({
     signal,
-  }) => listBookings({ signal, ...requestOptions });
+  }) => listBookings(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listBookings>>,
@@ -1129,21 +1311,24 @@ export type ListBookingsQueryResult = NonNullable<
 export type ListBookingsQueryError = ErrorType<unknown>;
 
 /**
- * @summary List bookings
+ * @summary List bookings (optionally filter by customer or provider)
  */
 
 export function useListBookings<
   TData = Awaited<ReturnType<typeof listBookings>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listBookings>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListBookingsQueryOptions(options);
+>(
+  params?: ListBookingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBookings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListBookingsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

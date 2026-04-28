@@ -13,6 +13,7 @@ export interface Booking {
   gigTitle: string;
   providerId: number;
   providerName: string;
+  customerUserId?: number | null;
   customerName: string;
   customerContact: string;
   scheduledDate: string;

@@ -15,6 +15,43 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * @summary Find or create a user account by email (simple sign-in)
+ */
+export const SignInUserBody = zod.object({
+  name: zod.string(),
+  email: zod.string(),
+});
+
+export const SignInUserResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  providerId: zod
+    .number()
+    .nullish()
+    .describe("Set if the user has onboarded as a provider"),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Get a user by id (with optional providerId if onboarded)
+ */
+export const GetUserParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetUserResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  providerId: zod
+    .number()
+    .nullish()
+    .describe("Set if the user has onboarded as a provider"),
+  createdAt: zod.string(),
+});
+
+/**
  * @summary List all gig listings
  */
 export const ListGigsQueryParams = zod.object({
@@ -124,6 +161,7 @@ export const ListProvidersQueryParams = zod.object({
 
 export const ListProvidersResponseItem = zod.object({
   id: zod.number(),
+  userId: zod.number().nullish(),
   name: zod.string(),
   bio: zod.string(),
   location: zod.string(),
@@ -142,6 +180,10 @@ export const ListProvidersResponse = zod.array(ListProvidersResponseItem);
  * @summary Register as a service provider
  */
 export const CreateProviderBody = zod.object({
+  userId: zod
+    .number()
+    .optional()
+    .describe("Link this provider profile to a user account"),
   name: zod.string(),
   bio: zod.string(),
   location: zod.string(),
@@ -157,6 +199,7 @@ export const GetProviderParams = zod.object({
 
 export const GetProviderResponse = zod.object({
   id: zod.number(),
+  userId: zod.number().nullish(),
   name: zod.string(),
   bio: zod.string(),
   location: zod.string(),
@@ -187,6 +230,7 @@ export const UpdateProviderBody = zod.object({
 
 export const UpdateProviderResponse = zod.object({
   id: zod.number(),
+  userId: zod.number().nullish(),
   name: zod.string(),
   bio: zod.string(),
   location: zod.string(),
@@ -261,14 +305,28 @@ export const CreateProviderReviewBody = zod.object({
 });
 
 /**
- * @summary List bookings
+ * @summary List bookings (optionally filter by customer or provider)
  */
+export const ListBookingsQueryParams = zod.object({
+  customerUserId: zod.coerce
+    .number()
+    .optional()
+    .describe("Only return bookings created by this user (My Orders)"),
+  providerId: zod.coerce
+    .number()
+    .optional()
+    .describe(
+      "Only return bookings received by this provider (My Gig Bookings)",
+    ),
+});
+
 export const ListBookingsResponseItem = zod.object({
   id: zod.number(),
   gigId: zod.number(),
   gigTitle: zod.string(),
   providerId: zod.number(),
   providerName: zod.string(),
+  customerUserId: zod.number().nullish(),
   customerName: zod.string(),
   customerContact: zod.string(),
   scheduledDate: zod.string(),
@@ -284,6 +342,10 @@ export const ListBookingsResponse = zod.array(ListBookingsResponseItem);
  */
 export const CreateBookingBody = zod.object({
   gigId: zod.number(),
+  customerUserId: zod
+    .number()
+    .optional()
+    .describe("Optional id of the logged-in user placing the booking"),
   customerName: zod.string(),
   customerContact: zod.string(),
   scheduledDate: zod.string(),
@@ -303,6 +365,7 @@ export const GetBookingResponse = zod.object({
   gigTitle: zod.string(),
   providerId: zod.number(),
   providerName: zod.string(),
+  customerUserId: zod.number().nullish(),
   customerName: zod.string(),
   customerContact: zod.string(),
   scheduledDate: zod.string(),
@@ -329,6 +392,7 @@ export const UpdateBookingStatusResponse = zod.object({
   gigTitle: zod.string(),
   providerId: zod.number(),
   providerName: zod.string(),
+  customerUserId: zod.number().nullish(),
   customerName: zod.string(),
   customerContact: zod.string(),
   scheduledDate: zod.string(),

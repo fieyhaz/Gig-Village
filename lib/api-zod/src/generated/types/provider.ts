@@ -8,6 +8,7 @@
 
 export interface Provider {
   id: number;
+  userId?: number | null;
   name: string;
   bio: string;
   location: string;
