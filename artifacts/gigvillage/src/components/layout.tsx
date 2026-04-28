@@ -3,10 +3,21 @@ import { Menu, X, Briefcase, Users, LayoutDashboard, BarChart3, PlusCircle, LogI
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/lib/auth";
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+
+  const handleJoinAsProvider = () => {
+    setMobileMenuOpen(false);
+    if (isAuthenticated) {
+      setLocation("/provider/onboarding");
+    } else {
+      setLocation("/login?redirect=/provider/onboarding");
+    }
+  };
 
   const navigation = [
     { name: "Marketplace", href: "/marketplace", icon: Briefcase },
@@ -46,9 +57,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/register" data-testid="link-register">
-              <Button variant="ghost" className="text-sm">Join as Provider</Button>
-            </Link>
+            <Button
+              variant="ghost"
+              className="text-sm"
+              onClick={handleJoinAsProvider}
+              data-testid="link-register"
+            >
+              Join as Provider
+            </Button>
             <Link href="/post-gig" data-testid="link-post-gig">
               <Button className="gap-2">
                 <PlusCircle className="w-4 h-4" />
@@ -94,12 +110,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </nav>
               
               <div className="mt-auto flex flex-col gap-3">
-                <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full justify-start gap-2">
-                    <LogIn className="w-4 h-4" />
-                    Join as Provider
-                  </Button>
-                </Link>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  onClick={handleJoinAsProvider}
+                >
+                  <LogIn className="w-4 h-4" />
+                  Join as Provider
+                </Button>
                 <Link href="/post-gig" onClick={() => setMobileMenuOpen(false)}>
                   <Button className="w-full justify-start gap-2">
                     <PlusCircle className="w-4 h-4" />

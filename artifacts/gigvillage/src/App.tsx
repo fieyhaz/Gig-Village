@@ -16,6 +16,8 @@ import PostGig from "@/pages/post-gig";
 import GigDetail from "@/pages/gig-detail";
 import ProviderDetail from "@/pages/provider-detail";
 import BookingDetail from "@/pages/booking-detail";
+import Login from "@/pages/login";
+import ProviderOnboarding from "@/pages/provider-onboarding";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,8 @@ function Router() {
         <Route path="/bookings" component={Bookings} />
         <Route path="/impact" component={Impact} />
         <Route path="/register" component={Register} />
+        <Route path="/login" component={Login} />
+        <Route path="/provider/onboarding" component={ProviderOnboarding} />
         <Route path="/post-gig" component={PostGig} />
         <Route path="/gigs/:id" component={GigDetail} />
         <Route path="/providers/:id" component={ProviderDetail} />
